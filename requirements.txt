@@ -1,5 +1,6 @@
 Flask
 gunicorn
+pinecone
 pinecone-client
 langchain
 huggingface-hub

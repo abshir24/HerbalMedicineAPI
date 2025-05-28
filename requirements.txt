@@ -7,3 +7,7 @@ huggingface-hub
 sentence-transformers
 requests
 langchain-huggingface
+langchain_community 
+huggingface
+langchainhub
+sentence-transformers

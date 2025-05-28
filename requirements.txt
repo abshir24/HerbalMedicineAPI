@@ -1,0 +1,8 @@
+Flask
+gunicorn
+pinecone-client
+langchain
+huggingface-hub
+sentence-transformers
+requests
+langchain-huggingface

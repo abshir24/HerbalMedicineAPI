@@ -4,7 +4,7 @@ import time
 from flask import Flask, request, jsonify
 from pinecone import Pinecone, ServerlessSpec
 import re
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.llms import HuggingFaceHub
 from langchain_huggingface import HuggingFaceEndpoint
 import os
@@ -36,7 +36,7 @@ print(index.describe_index_stats())
 
 
 # Initialize HuggingFace embeddings
-embedding_model_name = "sentence-transformers/all-MiniLM-L6-v2"
+embedding_model_name = "sentence-transformers/paraphrase-MiniLM-L3-v2"
 hf_embeddings = HuggingFaceEmbeddings(model_name=embedding_model_name)
 
 # Initialize HuggingFaceHub LLM
@@ -325,40 +325,40 @@ def full_pipeline():
         return jsonify({"error": f"Error processing query: {str(e)}"}), 500
     
 # Flask route for uploading new datasets (Admin feature)
-@app.route("/upload-dataset", methods=["POST"])
-def upload_dataset():
-    """ Admin endpoint for uploading new herbal datasets. """
-    try:
-        file = request.files.get("file")
-        if not file:
-            return jsonify({"error": "No file provided"}), 400
+# @app.route("/upload-dataset", methods=["POST"])
+# def upload_dataset():
+#     """ Admin endpoint for uploading new herbal datasets. """
+#     try:
+#         file = request.files.get("file")
+#         if not file:
+#             return jsonify({"error": "No file provided"}), 400
 
-        data = json.load(file)
-        vectors = []
+#         data = json.load(file)
+#         vectors = []
 
-        for i, entry in enumerate(data):
-            # Clean and prepare text
-            raw_text = entry.get("content", "") or entry.get("description", "") or entry.get("remedy_description", "")
-            cleaned_text = clean_output(raw_text)
+#         for i, entry in enumerate(data):
+#             # Clean and prepare text
+#             raw_text = entry.get("content", "") or entry.get("description", "") or entry.get("remedy_description", "")
+#             cleaned_text = clean_output(raw_text)
 
-            # Embed text
-            vector = hf_embeddings.embed_query(cleaned_text)
+#             # Embed text
+#             vector = hf_embeddings.embed_query(cleaned_text)
 
-            # Attach metadata
-            metadata = clean_metadata(entry)
-            vectors.append({
-                "id": f"upload-{i}",
-                "values": vector,
-                "metadata": metadata
-            })
+#             # Attach metadata
+#             metadata = clean_metadata(entry)
+#             vectors.append({
+#                 "id": f"upload-{i}",
+#                 "values": vector,
+#                 "metadata": metadata
+#             })
 
-        # Upload to Pinecone
-        index.upsert(vectors=vectors)
-        return jsonify({"message": f"Uploaded {len(vectors)} entries to the vector database."})
+#         # Upload to Pinecone
+#         index.upsert(vectors=vectors)
+#         return jsonify({"message": f"Uploaded {len(vectors)} entries to the vector database."})
 
-    except Exception as e:
-        logging.error(f"Error uploading dataset: {str(e)}")
-        return jsonify({"error": "Error uploading dataset."}), 500
+#     except Exception as e:
+#         logging.error(f"Error uploading dataset: {str(e)}")
+#         return jsonify({"error": "Error uploading dataset."}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

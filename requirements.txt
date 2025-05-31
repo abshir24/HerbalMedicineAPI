@@ -11,3 +11,5 @@ langchain_community
 huggingface
 langchainhub
 sentence-transformers
+streamlit
+flask-cors

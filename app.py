@@ -9,11 +9,16 @@ from langchain.llms import HuggingFaceHub
 from langchain_huggingface import HuggingFaceEndpoint
 import os
 from dotenv import load_dotenv
+from flask_cors import CORS
 
 
 load_dotenv()
+
+
 # Initialize Flask app
 app = Flask(__name__)
+
+CORS(app)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, filename="app.log", filemode="a",

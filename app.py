@@ -10,6 +10,9 @@ from langchain_huggingface import HuggingFaceEndpoint
 import os
 from dotenv import load_dotenv
 from flask_cors import CORS
+import threading
+import time
+
 
 
 load_dotenv()
@@ -26,7 +29,7 @@ logging.basicConfig(level=logging.INFO, filename="app.log", filemode="a",
 
 # Initialize Pinecone
 # Initialize Pinecone client
-pinecone_client = Pinecone(
+pinecone = Pinecone(
     api_key= os.environ.get("PINECONE_API_KEY")  # Replace with your API key
 )
 
@@ -34,7 +37,7 @@ pinecone_client = Pinecone(
 index_name = "daawo-vectordb"
 
 # Connect to the index
-index = pinecone_client.Index(index_name)
+index = pinecone.Index(index_name)
 
 # Check connection by describing the index stats
 print(index.describe_index_stats())
@@ -50,12 +53,6 @@ llm = HuggingFaceEndpoint(
     huggingfacehub_api_token=os.environ.get("HUGGINGFACEHUB_API_TOKEN"),
     task="text2text-generation"
 )
-
-# llm = HuggingFaceHub(
-#     repo_id="meta-llama/Llama-3.1-8B-Instruct",
-#     huggingfacehub_api_token= os.environ.get("HUGGINGFACEHUB_API_TOKEN"),
-#     model_kwargs={"max_tokens": 300, "temperature": 0.5}
-# )
 
 # Function to clean dataset-specific content
 def clean_output(raw_text):
@@ -189,6 +186,7 @@ def query_vector_db(query, top_k=5, filters=None):
 
 
     return results
+
 
 # Function to interact with LLM
 def herbal_medicine_query_with_context(query, context_chunks):
@@ -363,6 +361,19 @@ def upload_dataset():
     except Exception as e:
         logging.error(f"Error uploading dataset: {str(e)}")
         return jsonify({"error": "Error uploading dataset."}), 500
+    
+
+def warm_up_api():
+    print("🔥 Running warm-up query...")
+    try:
+        time.sleep(2)  # Give the server time to fully boot
+        dummy_question = "What is Lemon balm?"
+        result = response = full_pipeline_test(dummy_question)
+        print("✅ Warm-up result:", result.get("main_answer", "No result."))
+    except Exception as e:
+        print(f"⚠️ Warm-up failed: {e}")
+
+threading.Thread(target=warm_up_api).start()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

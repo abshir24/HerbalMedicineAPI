@@ -51,7 +51,7 @@ hf_embeddings = HuggingFaceEmbeddings(model_name=embedding_model_name)
 llm = HuggingFaceEndpoint(
     repo_id="meta-llama/Llama-3.1-8B-Instruct",  # Swap this for any available small model
     huggingfacehub_api_token=os.environ.get("HUGGINGFACEHUB_API_TOKEN"),
-    task="text2text-generation"
+    task="text-generation"
 )
 
 # Function to clean dataset-specific content

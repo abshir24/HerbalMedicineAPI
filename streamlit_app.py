@@ -33,5 +33,11 @@ if st.button("Get Herbal Guidance"):
                     st.subheader("📌 Additional Notes")
                     st.write(data["additional_notes"])
 
+            except requests.exceptions.HTTPError as e:
+                if response.status_code == 500:
+                    st.error("⚠️ The system is waking up. Try again in a moment.")
+                else:
+                    st.error(f"An error occurred: {str(e)}")
+
             except requests.exceptions.RequestException as e:
-                st.error(f"Request failed: {e}")
+                st.error("⚠️ Unable to connect to the API. Please check your network or try again shortly.")

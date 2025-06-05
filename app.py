@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from flask_cors import CORS
 import threading
 import time
+from openai import OpenAI
 
 
 
@@ -42,17 +43,11 @@ index = pinecone.Index(index_name)
 # Check connection by describing the index stats
 print(index.describe_index_stats())
 
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Initialize HuggingFace embeddings
 embedding_model_name = "sentence-transformers/all-MiniLM-L6-v2"
 hf_embeddings = HuggingFaceEmbeddings(model_name=embedding_model_name)
-
-# Initialize HuggingFaceHub LLM
-llm = HuggingFaceEndpoint(
-    repo_id="meta-llama/Llama-3.1-8B-Instruct",  # Swap this for any available small model
-    huggingfacehub_api_token=os.environ.get("HUGGINGFACEHUB_API_TOKEN"),
-    task="text-generation"
-)
 
 # Function to clean dataset-specific content
 def clean_output(raw_text):
@@ -190,15 +185,6 @@ def query_vector_db(query, top_k=5, filters=None):
 
 # Function to interact with LLM
 def herbal_medicine_query_with_context(query, context_chunks):
-    """
-    Generate a response using the LLM with provided context, ensuring additional notes are always included.
-    Args:
-        query (str): User's query.
-        context_chunks (list): Relevant chunks retrieved from the vector database.
-    Returns:
-        dict: Structured response with main answer and additional notes.
-    """
-    # Format context into a single string
     context = "\n\n".join(
         [
             chunk["metadata"].get("description") or
@@ -208,7 +194,6 @@ def herbal_medicine_query_with_context(query, context_chunks):
         ]
     )
 
-    # Construct the LLM prompt
     prompt = f"""
     Using the following context, answer the user's question concisely. Then, provide additional notes, including any important considerations, recommendations, or relevant related information:
 
@@ -219,39 +204,52 @@ def herbal_medicine_query_with_context(query, context_chunks):
     Answer:
     """
 
-    # Generate response from LLM
-   
-    print("Sending prompt to LLM...")
+    print("Sending prompt to OpenAI...")
     start = time.time()
-    response = llm.invoke(prompt)
-    print(f"LLM response received in {time.time() - start:.2f} seconds")
-    print(f"LLM Prompt:\n{prompt}")
-    print(f"LLM Raw Response: {response}")
-    
-    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful herbal medicine assistant."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        response_text = response.choices[0].message.content
+        print(f"Response received in {time.time() - start:.2f} seconds")
+        print(f"LLM Prompt:\n{prompt}")
+        print(f"LLM Raw Response: {response_text}")
+
+    except Exception as e:
+        logging.error(f"OpenAI API call failed: {str(e)}")
+        return {
+            "main_answer": "An error occurred during LLM processing.",
+            "additional_notes": str(e)
+        }
+
     # Extract main answer and additional notes
     main_answer = ""
     additional_notes = ""
     try:
-        if "Answer:" in response:
-            response = response.split("Answer:", 1)[-1].strip()
+        if "Answer:" in response_text:
+            response_text = response_text.split("Answer:", 1)[-1].strip()
         
-        if "Additional Notes:" in response:
-            main_answer, additional_notes = response.split("Additional Notes:", 1)
+        if "Additional Notes:" in response_text:
+            main_answer, additional_notes = response_text.split("Additional Notes:", 1)
             main_answer = main_answer.strip()
             additional_notes = additional_notes.strip()
         else:
-            main_answer = response.strip()
+            main_answer = response_text.strip()
             additional_notes = "No additional notes provided."
     except Exception as e:
         main_answer = "An error occurred while parsing the response."
         additional_notes = str(e)
     
-    # Return structured response
     return {
         "main_answer": main_answer,
         "additional_notes": additional_notes
     }
+
 
 def fetch_relevant_context(query, top_k=5):
     """

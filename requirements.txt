@@ -13,3 +13,4 @@ langchainhub
 sentence-transformers
 streamlit
 flask-cors
+openai

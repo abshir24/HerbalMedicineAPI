@@ -225,8 +225,8 @@ def herbal_medicine_query_with_context(query, context_chunks):
     start = time.time()
     response = llm.invoke(prompt)
     print(f"LLM response received in {time.time() - start:.2f} seconds")
-    logging.info(f"LLM Prompt:\n{prompt}")
-    logging.info(f"LLM Raw Response: {response}")
+    print(f"LLM Prompt:\n{prompt}")
+    print(f"LLM Raw Response: {response}")
     
     
     # Extract main answer and additional notes
@@ -265,7 +265,7 @@ def fetch_relevant_context(query, top_k=5):
     # Query vector database
     context_chunks = query_vector_db(query, top_k=top_k)
 
-    logging.info(f"Top {len(context_chunks)} context chunks retrieved for query: '{query}'")
+    print(f"Top {len(context_chunks)} context chunks retrieved for query: '{query}'")
 
     # Prioritize by score and relevance to the query
     context_chunks = sorted(context_chunks, key=lambda x: x["score"], reverse=True)
@@ -297,9 +297,9 @@ def home():
 
 @app.route("/query", methods=["POST"])
 def query_endpoint():
-    logging.info(f"Incoming {request.method} request to {request.path} at {time.strftime('%Y-%m-%d %H:%M:%S')}")
-    logging.info(f"Headers: {dict(request.headers)}")
-    logging.info(f"Payload: {request.get_data(as_text=True)}")
+    print(f"Incoming {request.method} request to {request.path} at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Headers: {dict(request.headers)}")
+    print(f"Payload: {request.get_data(as_text=True)}")
 
     try:
         data = request.get_json()
@@ -317,9 +317,9 @@ def query_endpoint():
 
 @app.route("/pipeline-test", methods=["POST"])
 def full_pipeline():
-    logging.info(f"Incoming {request.method} request to {request.path} at {time.strftime('%Y-%m-%d %H:%M:%S')}")
-    logging.info(f"Headers: {dict(request.headers)}")
-    logging.info(f"Payload: {request.get_data(as_text=True)}")
+    print(f"Incoming {request.method} request to {request.path} at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Headers: {dict(request.headers)}")
+    print(f"Payload: {request.get_data(as_text=True)}")
 
     try:
         data = request.get_json()
@@ -341,9 +341,9 @@ def full_pipeline():
 # Flask route for uploading new datasets (Admin feature)
 @app.route("/upload-dataset", methods=["POST"])
 def upload_dataset():
-    logging.info(f"Incoming {request.method} request to {request.path} at {time.strftime('%Y-%m-%d %H:%M:%S')}")
-    logging.info(f"Headers: {dict(request.headers)}")
-    logging.info(f"Payload: {request.get_data(as_text=True)}")
+    print(f"Incoming {request.method} request to {request.path} at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Headers: {dict(request.headers)}")
+    print(f"Payload: {request.get_data(as_text=True)}")
 
     """ Admin endpoint for uploading new herbal datasets. """
     try:

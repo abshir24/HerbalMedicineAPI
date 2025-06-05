@@ -297,12 +297,11 @@ def home():
 
 @app.route("/query", methods=["POST"])
 def query_endpoint():
-    print(f"Incoming {request.method} request to {request.path} at {time.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"Headers: {dict(request.headers)}")
-    print(f"Payload: {request.get_data(as_text=True)}")
-
     try:
-        data = request.get_json()
+        print(f"Incoming {request.method} request to {request.path} at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Headers: {dict(request.headers)}")
+        print(f"Payload: {request.get_data(as_text=True)}")
+        data = request.get_json(force=True)
         query = data.get("query", "")
         if not query:
             return jsonify({"error": "Query not provided"}), 400
@@ -312,6 +311,9 @@ def query_endpoint():
 
         return jsonify(llm_response)
     except Exception as e:
+        import traceback
+        traceback.print_exc()  # Logs full stack trace
+        
         logging.error(f"Error processing query: {str(e)}")
         return jsonify({"error": F"Internal server error: {str(e)}"}), 500
 

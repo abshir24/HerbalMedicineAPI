@@ -379,17 +379,17 @@ def upload_dataset():
         return jsonify({"error": "Error uploading dataset."}), 500
     
 
-def warm_up_api():
-    print("🔥 Running warm-up query...")
-    try:
-        time.sleep(2)  # Give the server time to fully boot
-        dummy_question = "What is Lemon balm?"
-        result = response = full_pipeline_test(dummy_question)
-        print("✅ Warm-up result:", result.get("main_answer", "No result."))
-    except Exception as e:
-        print(f"⚠️ Warm-up failed: {e}")
+# def warm_up_api():
+#     print("🔥 Running warm-up query...")
+#     try:
+#         time.sleep(2)  # Give the server time to fully boot
+#         dummy_question = "What is Lemon balm?"
+#         result = response = full_pipeline_test(dummy_question)
+#         print("✅ Warm-up result:", result.get("main_answer", "No result."))
+#     except Exception as e:
+#         print(f"⚠️ Warm-up failed: {e}")
 
-threading.Thread(target=warm_up_api).start()
+# threading.Thread(target=warm_up_api).start()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

@@ -195,13 +195,12 @@ def herbal_medicine_query_with_context(query, context_chunks):
     )
 
     prompt = f"""
-    Using the following context, answer the user's question concisely. Then, provide additional notes, including any important considerations, recommendations, or relevant related information:
+    Answer the user's question using the context provided.
 
     Context:
     {context}
 
     Question: {query}
-    Answer:
     """
 
     print("Sending prompt to OpenAI...")
@@ -277,7 +276,7 @@ def full_pipeline_test(query):
     Args:
         query (str): User query.
     """
-    
+
     print("Fetching context...")
     context = fetch_relevant_context(query)
     print("Context fetched. Now querying LLM...")
@@ -301,8 +300,15 @@ def query_endpoint():
         print(f"Payload: {request.get_data(as_text=True)}")
         data = request.get_json(force=True)
         query = data.get("query", "")
-        if not query:
-            return jsonify({"error": "Query not provided"}), 400
+        
+        # Add before calling fetch_relevant_context or full_pipeline_test
+        query = query.strip()
+        if not query or len(query) == 0:
+            logging.warning(f"Rejected query: '{query}'")
+            return jsonify({"error": "Query is empty or only contains whitespace."}), 400
+        if len(query) > 300:
+            logging.warning(f"Rejected query: '{query}'")
+            return jsonify({"error": "Query exceeds the maximum allowed length of 300 characters."}), 400
 
         context = fetch_relevant_context(query)
         llm_response = herbal_medicine_query_with_context(query, context)
@@ -325,8 +331,14 @@ def full_pipeline():
         data = request.get_json()
         query = data.get("query", "")
         print("----------------- Testing -------------------", query)
-        if not query:
-            return jsonify({"error": "Query not provided"}), 400
+        
+        query = query.strip()
+        if not query or len(query) == 0:
+            logging.warning(f"Rejected query: '{query}'")
+            return jsonify({"error": "Query is empty or only contains whitespace."}), 400
+        if len(query) > 300:
+            logging.warning(f"Rejected query: '{query}'")
+            return jsonify({"error": "Query exceeds the maximum allowed length of 300 characters."}), 400
         
         response = full_pipeline_test(query)
         return jsonify({

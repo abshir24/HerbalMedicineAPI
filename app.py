@@ -13,6 +13,7 @@ from flask_cors import CORS
 import threading
 import time
 from openai import OpenAI
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 
 
 
@@ -48,6 +49,16 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # Initialize HuggingFace embeddings
 embedding_model_name = "sentence-transformers/all-MiniLM-L6-v2"
 hf_embeddings = HuggingFaceEmbeddings(model_name=embedding_model_name)
+
+
+def extract_keywords_from_query(query):
+    # Remove punctuation and lowercase
+    cleaned = re.sub(r"[^\w\s]", "", query.lower())
+    words = cleaned.split()
+
+    # Remove short/common words
+    keywords = [word for word in words if word not in ENGLISH_STOP_WORDS and len(word) > 3]
+    return keywords
 
 # Function to clean dataset-specific content
 def clean_output(raw_text):
@@ -250,7 +261,7 @@ def herbal_medicine_query_with_context(query, context_chunks):
     }
 
 
-def fetch_relevant_context(query, top_k=5):
+def fetch_relevant_context(query, top_k=5, relevance_score_threshold=0.75):
     """
     Fetch relevant context chunks from the vector database for a given query.
     Args:
@@ -259,16 +270,28 @@ def fetch_relevant_context(query, top_k=5):
     Returns:
         list: Relevant context chunks.
     """
-    # Query vector database
-    context_chunks = query_vector_db(query, top_k=top_k)
+    # Step 1: Extract keywords
+    keywords = extract_keywords_from_query(query)
+    keyword_pattern = re.compile(r'\b(?:' + '|'.join(re.escape(k) for k in keywords) + r')\b', re.IGNORECASE)
 
-    print(f"Top {len(context_chunks)} context chunks retrieved for query: '{query}'")
+    # Step 2: Get initial top-K results
+    context_chunks = query_vector_db(query, top_k=top_k * 2)  # Get more for filtering
 
-    # Prioritize by score and relevance to the query
-    context_chunks = sorted(context_chunks, key=lambda x: x["score"], reverse=True)
+    # Step 3: Filter chunks by keyword match or similarity score
+    filtered_chunks = []
+    for chunk in context_chunks:
+        text = chunk["metadata"].get("description") or chunk["metadata"].get("remedy_description") or chunk["metadata"].get("content", "")
+        score = chunk["score"]
 
-    # Return the metadata of the chunks
-    return context_chunks
+        keyword_match = keyword_pattern.search(text)
+        if keyword_match or score >= relevance_score_threshold:
+            filtered_chunks.append(chunk)
+
+    # Step 4: Sort and return final filtered top-k
+    final_chunks = sorted(filtered_chunks, key=lambda x: x["score"], reverse=True)[:top_k]
+
+    print(f"Selected {len(final_chunks)} filtered context chunks from {len(context_chunks)} candidates.")
+    return final_chunks
 
 def full_pipeline_test(query):
     """

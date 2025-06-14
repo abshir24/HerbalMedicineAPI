@@ -2,7 +2,7 @@ import json
 import logging
 import time
 from flask import Flask, request, jsonify
-from pinecone import Pinecone, ServerlessSpec
+from pinecone import Pinecone, ServerlessSpec,PineconeException
 import re
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.llms import HuggingFaceHub
@@ -14,7 +14,8 @@ import threading
 import time
 from openai import OpenAI
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
-
+import functools
+import random
 
 
 load_dotenv()
@@ -49,6 +50,37 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # Initialize HuggingFace embeddings
 embedding_model_name = "sentence-transformers/all-MiniLM-L6-v2"
 hf_embeddings = HuggingFaceEmbeddings(model_name=embedding_model_name)
+
+def retry_with_backoff(max_retries=3, initial_delay=1, backoff_factor=2):
+    def decorator_retry(func):
+        @functools.wraps(func)
+        def wrapper_retry(*args, **kwargs):
+            delay = initial_delay
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    logging.warning(f"Retry {attempt + 1}/{max_retries} after error: {e}")
+                    if attempt == max_retries - 1:
+                        raise
+                    time.sleep(delay + random.uniform(0, 0.5))  # slight jitter
+                    delay *= backoff_factor
+        return wrapper_retry
+    return decorator_retry
+
+@retry_with_backoff(max_retries=3, initial_delay=1)
+def safe_pinecone_query(index, query_embedding, top_k, filters):
+    return index.query(
+        vector=query_embedding,
+        top_k=top_k,
+        include_metadata=True,
+        filter=filters
+    )
+
+@retry_with_backoff(max_retries=3, initial_delay=1)
+def safe_pinecone_upsert(index, vectors):
+    index.upsert(vectors=vectors)
+
 
 
 def extract_keywords_from_query(query):
@@ -144,13 +176,8 @@ def query_vector_db(query, top_k=5, filters=None):
     # Generate query embedding
     query_embedding = hf_embeddings.embed_query(query)
     
-    # Perform query
-    search_results = index.query(
-        vector=query_embedding,
-        top_k=top_k,
-        include_metadata=True,
-        filter=filters  # Apply metadata filters if provided
-    )
+    
+    search_results = safe_pinecone_query(index, query_embedding, top_k, filters)
 
     # Process and clean results
     results = []
@@ -406,25 +433,20 @@ def upload_dataset():
             })
 
         # Upload to Pinecone
-        index.upsert(vectors=vectors)
+        safe_pinecone_upsert(index, vectors)
         return jsonify({"message": f"Uploaded {len(vectors)} entries to the vector database."})
 
     except Exception as e:
         logging.error(f"Error uploading dataset: {str(e)}")
         return jsonify({"error": "Error uploading dataset."}), 500
-    
 
-# def warm_up_api():
-#     print("🔥 Running warm-up query...")
-#     try:
-#         time.sleep(2)  # Give the server time to fully boot
-#         dummy_question = "What is Lemon balm?"
-#         result = response = full_pipeline_test(dummy_question)
-#         print("✅ Warm-up result:", result.get("main_answer", "No result."))
-#     except Exception as e:
-#         print(f"⚠️ Warm-up failed: {e}")
-
-# threading.Thread(target=warm_up_api).start()
+@app.get("/health")
+async def health_check():
+    try:
+        index.describe_index_stats()  # or another lightweight call
+        return {"pinecone": "healthy"}
+    except PineconeException as e:
+        return jsonify({"pinecone": "unhealthy", "error": str(e)}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

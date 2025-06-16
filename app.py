@@ -444,7 +444,7 @@ def upload_dataset():
 async def health_check():
     try:
         index.describe_index_stats()  # or another lightweight call
-        return jsonify({"pinecone": "healthy"})
+        return jsonify({"pinecone": "healthy"}), 200
     except PineconeException as e:
         return jsonify({"pinecone": "unhealthy", "error": str(e)}), 500
 

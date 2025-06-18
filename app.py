@@ -16,6 +16,7 @@ from openai import OpenAI
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 import functools
 import random
+from datetime import datetime, timedelta
 
 
 load_dotenv()
@@ -25,6 +26,9 @@ load_dotenv()
 app = Flask(__name__)
 
 CORS(app)
+
+cache = {}
+CACHE_TTL = timedelta(hours=6)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, filename="app.log", filemode="a",
@@ -352,16 +356,40 @@ def query_endpoint():
         query = data.get("query", "")
         
         # Add before calling fetch_relevant_context or full_pipeline_test
-        query = query.strip()
+        query = query.strip().lower()
         if not query or len(query) == 0:
             logging.warning(f"Rejected query: '{query}'")
             return jsonify({"error": "Query is empty or only contains whitespace."}), 400
         if len(query) > 300:
             logging.warning(f"Rejected query: '{query}'")
             return jsonify({"error": "Query exceeds the maximum allowed length of 300 characters."}), 400
+        
+        cached_entry = cache.get(query)
+
+        if cached_entry:
+            age = datetime.now() - cached_entry["timestamp"]
+            if age < CACHE_TTL:
+                logging.info("Cache HIT")
+                return jsonify({
+                    "main_answer": cached_entry["main_answer"],
+                    "additional_notes": cached_entry["additional_notes"],
+                    "cached": True
+                })
+            else:
+                logging.info("Cache EXPIRED")
+                cache.pop(query)
+        else:
+            logging.info("Cache MISS")
 
         context = fetch_relevant_context(query)
         llm_response = herbal_medicine_query_with_context(query, context)
+
+        # Store in cache
+        cache[query] = {
+            "main_answer": llm_response["main_answer"],
+            "additional_notes": llm_response.get("additional_notes", "No additional notes provided."),
+            "timestamp": datetime.now()
+        }
 
         return jsonify(llm_response)
     except Exception as e:

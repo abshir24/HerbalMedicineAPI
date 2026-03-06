@@ -1,23 +1,27 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useState } from "react";
+import QueryBox from "./components/QueryBox";
+import ResponseCard from "./components/ResponseCard";
+import { queryHerbalAPI } from "./services/api";
 
 function App() {
+  const [response, setResponse] = useState(null);
+
+  const handleQuery = async (query) => {
+    try {
+      const data = await queryHerbalAPI(query);
+      setResponse(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <h1>Herbal Medicine AI</h1>
+
+      <QueryBox onSubmit={handleQuery} />
+
+      <ResponseCard response={response} />
     </div>
   );
 }

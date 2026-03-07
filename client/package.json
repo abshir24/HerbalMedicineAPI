@@ -1,11 +1,33 @@
 {
   "dependencies": {
     "axios": "^1.13.6",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-scripts": "^5.0.1",
+    "web-vitals": "^5.1.0",
     "yarn": "^1.22.22"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
   },
   "name": "herbalmedicineapp",
   "version": "1",
   "description": "Herbal Medicine app",
   "main": "index.js",
-  "license": "MIT"
+  "license": "MIT",
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
 }

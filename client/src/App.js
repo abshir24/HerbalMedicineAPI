@@ -9,6 +9,7 @@ function App() {
   const handleQuery = async (query) => {
     try {
       const data = await queryHerbalAPI(query);
+      console.log("Data: ", data)
       setResponse(data);
     } catch (error) {
       console.error(error);

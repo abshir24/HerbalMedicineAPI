@@ -19,6 +19,7 @@ from helper import (
 from langchain_huggingface import HuggingFaceEmbeddings
 from pinecone import Pinecone, ServerlessSpec,PineconeException
 import os
+import numpy
 
 
 # Initialize Flask app

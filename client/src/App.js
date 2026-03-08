@@ -18,6 +18,11 @@ function App() {
 
   return (
     <div>
+      
+      <div className="h-screen flex items-center justify-center bg-slate-900 text-white">
+        <h1 className="text-4xl font-bold">Tailwind is Working 🚀</h1>
+      </div>
+ 
       <h1>Herbal Medicine AI</h1>
 
       <QueryBox onSubmit={handleQuery} />

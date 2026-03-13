@@ -7,11 +7,12 @@ function App() {
 
   const handleSearch = async () => {
     try {
-      const res = await axios.post("http://localhost:5000/query", {
-        question: query
-      });
+      
+      // const res = await axios.post("http://localhost:5000/query", {
+      //   question: query
+      // });
 
-      setResponse(res.data.response);
+      setResponse("This is a dummy response until open ai api is connected to app. " + query);
     } catch (error) {
       console.error(error);
     }
